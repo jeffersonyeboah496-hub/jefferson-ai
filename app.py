@@ -1,7 +1,10 @@
 
 import os
+import logging
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -15,28 +18,33 @@ def chat():
         api_key = os.getenv("OPENAI_API_KEY")
 
         if not api_key:
-            return jsonify({"error": "AI API key is not configured yet."}), 503
+            return jsonify({"error": "API key not configured"}), 503
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         message = data.get("message", "").strip()
 
         if not message:
-            return jsonify({"error": "Please enter a message."}), 400
+            return jsonify({"error": "Please enter a message"}), 400
 
         client = OpenAI(api_key=api_key)
 
         response = client.responses.create(
             model="gpt-5.5",
-            instructions="You are JEFFERSON AI, a helpful and friendly AI assistant.",
+            instructions="You are JEFFERSON AI, a helpful AI assistant.",
             input=message
         )
 
         return jsonify({"reply": response.output_text})
 
     except Exception:
+        logging.exception("AI request failed")
         return jsonify({
-            "error": "Something went wrong. Please try again."
+            "error": "AI service error. Check server logs."
         }), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
+Enter
